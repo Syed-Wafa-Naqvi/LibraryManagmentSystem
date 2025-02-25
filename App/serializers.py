@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Book, Category, User
+from .models import Book, Category, User, BookTransaction
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,12 +15,7 @@ class BookSerializer(serializers.ModelSerializer):
             if obj.is_borrowed and obj.borrow_by:
                 return {
                     "userid": obj.borrow_by.userid,
-                    "name": obj.borrow_by.name,
-                    "address": obj.borrow_by.address,
-                    "phonenumber": obj.borrow_by.phonenumber,
                     "borrow_date": obj.borrow_date.strftime( ) 
-                    if obj.borrow_date 
-                    else None
                 }
             return None
         
@@ -29,4 +24,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['userid', 'user_password', 'name', 'address', 'phonenumber', 'books']
+        
+class BookActionSeriliazer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=[('BORROW', 'Borrow a book'), ('RETURN', 'Return a book')])
   
