@@ -18,7 +18,7 @@ class BookSerializer(serializers.ModelSerializer):
                     "name": obj.borrow_by.name,
                     "address": obj.borrow_by.address,
                     "phonenumber": obj.borrow_by.phonenumber,
-                    "borrow_date": obj.borrow_date.strftime() 
+                    "borrow_date": obj.borrow_date.strftime( ) 
                     if obj.borrow_date 
                     else None
                 }
