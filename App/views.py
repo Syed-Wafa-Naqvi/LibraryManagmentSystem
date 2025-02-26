@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.decorators import action
 from .models import User, Book ,Category
 from .serializers import BookSerializer, UserSerializer,CategorySerializer, BorrowSerializer
+from django.utils import timezone
 
 
 @api_view(['GET', 'POST'])
@@ -123,49 +124,38 @@ def category_detail(request, pk):
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-# class UserViewSet(viewsets.ModelViewSet):
-#   queryset = User.objects.all()
-#   serializer_class = UserSerializer
-  
-# class BookViewSet(viewsets.ModelViewSet):
-#   queryset = Book.objects.all()
-#   serializer_class = BookSerializer
-#   @action(detail=True, methods=['post'])
-#   def borrow(self, request, pk=None):
-#     book = self.get_object()
-#     user = request.user
-#     if book.want_to_borrow:
-#       return Response(
-#         {"error": "This book is already borrowed."},
-#           status=status.HTTP_400_BAD_REQUEST
-#         )
-#     book.borrow_by = user
-#     book.want_to_borrow = True
-#     book.borrow_date = now()
-#     book.save()
-#     return Response(
-#             {"message": f"Book '{book.book_title}'has been borrowed by {user.name}"},
-#             status=status.HTTP_200_OK
-#         )
-#   @action(detail=True, methods=['post'])
-#   def return_book(self, request, pk=None):
-#     book = self.get_object()
-#     user = request.user
-#     if not book.want_to_borrow or book.borrow_by != user:
-#       return Response (
-#         {"error":"This book was not borrowed by you already"},
-#                 status=status.HTTP_400_BAD_REQUEST
-#       )
-
-#     book.borrow_by = None
-#     book.want_to_borrow = False
-#     book.borrow_date = None
-#     book.save()
-#     return Response(
-#             {"message": f"Book '{book.book_title}'has been returned by {user.name}"},
-#             status=status.HTTP_200_OK
-#         )
-# class CategoryViewSet(viewsets.ModelViewSet):
-#   queryset = Category.objects.all()
-#   serializer_class = CategorySerializer
-
+@api_view(['POST'])
+def book_reservation(request):
+    userid = request.data.get('userid')
+    isbn = request.data.get('ISBN')
+    if not userid or not isbn:
+        return Response({'error': 'User ID and ISBN are required'}, status=status.HTTP_400_BAD_REQUEST)
+    user = get_object_or_404(User, userid=userid)
+    book = get_object_or_404(Book, ISBN=isbn)
+    if not book.is_borrowed:
+        return Response({'error': 'This book is  currently borrowed borrowed and cannot be reserve'}, status=status.HTTP_400_BAD_REQUEST)
+    existing_reservation = Reservation.objects.filter(user=user, book=book, status="Pending")
+    if existing_reservation:
+        return Response({'error': 'The book is already reserved'}, status=status.HTTP_400_BAD_REQUEST)
+    reservation = Reservation.objects.create(user=user, book=book,reservation_date= timezone.now(),status= "Pending"    )    
+    return Response({'message':f'Book "{book.book_title}" has been reserved succesfully'}, status=status.HTTP_201_CREATED)
+@api_view(['GET'])
+def reservation_list(request):
+    reservations = Reservation.objects.all()
+    serializer = ReservationSerializer(reservations, many=True)
+    return Response(serializer.data)
+@api_view(['GET', 'PUT', 'DELETE'])
+def reservation_detail(request, pk):
+    reservation = get_object_or_404(Reservation, pk=pk)
+    if request.method == 'GET':
+        serializer = ReservationSerializer(reservation)
+        return Response(serializer.data)
+    elif request.method == 'PUT':
+        serializer = ReservationSerializer(reservation, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    elif request.method == 'DELETE':
+        reservation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
