@@ -176,4 +176,4 @@ def search_data(request):
     authors_data = [{"id": author.id, "author_name": author.author_name} for author in authors]
     if not (books_data or users_data or categories_data or authors_data):
         return Response({"message": "No data found"}, status=status.HTTP_404_NOT_FOUND)
-    return Response({"books": books_data,"users": users_data,"categories": categories_data,"authors": authors_data,}, status=status.HTTP_200_OK)
+    return Response({"books": books_data,"users": users_data,"categories": categories_data,"authors": authors_data,}, status=status.HTTP_200_OK) 
