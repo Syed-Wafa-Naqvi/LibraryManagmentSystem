@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (users, user_detail, book_list, book_detail, book_borrow, book_return,category_list, category_detail, book_reservation, reservation_list, reservation_detail)
+from .views import (users, user_detail, book_list, book_detail, book_borrow, book_return,category_list, category_detail, book_reservation, reservation_list, reservation_detail,search_data)
 
 urlpatterns = [
 path('users/', users, name='user-list'),
@@ -13,4 +13,5 @@ path('categories/<int:pk>/', category_detail, name='category-detail'),
 path('reservations/reserve/', book_reservation, name='book-reservation'),
 path('reservations/', reservation_list, name='reservation-list'),
 path('reservations/<int:pk>/', reservation_detail, name='reservation-detail'),
+path('search/', search_data, name='search_data')
 ]

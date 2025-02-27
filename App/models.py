@@ -56,3 +56,9 @@ class Reservation(models.Model):
     status = models.CharField(max_length=20,default="Pending")
     def __str__(self):
         return f"{self.user.username} Reserved {self.book.book_title}"
+
+class Search(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    query = models.CharField(max_length=255)
+    def __str__(self):
+        return f"{self.user.userid} searched {self.description}"

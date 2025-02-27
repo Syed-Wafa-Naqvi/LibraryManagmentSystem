@@ -4,9 +4,11 @@ from rest_framework.decorators import api_view
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.decorators import action
-from .models import User, Book ,Category
-from .serializers import BookSerializer, UserSerializer,CategorySerializer, BorrowSerializer
+from .models import User, Book ,Category,Reservation,Author,Borrow,Search
+from .serializers import BookSerializer, UserSerializer,CategorySerializer, BorrowSerializer,ReservationSerializer
 from django.utils import timezone
+from django.db.models import Q
+
 
 
 @api_view(['GET', 'POST'])
@@ -159,3 +161,19 @@ def reservation_detail(request, pk):
     elif request.method == 'DELETE':
         reservation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+@api_view(['GET'])
+def search_data(request):
+    query = request.GET.get('q', None)
+    if not query:
+        return Response({"error": "Invalid search"}, status=status.HTTP_400_BAD_REQUEST)
+    books = Book.objects.filter(Q(book_title__icontains=query) | Q(ISBN__icontains=query))
+    users = User.objects.filter(Q(userid__icontains=query) | Q(name__icontains=query))
+    categories = Category.objects.filter(Q(name__icontains=query))
+    authors = Author.objects.filter(Q(author_name__icontains=query))
+    books_data = BookSerializer(books, many=True).data
+    users_data = UserSerializer(users, many=True).data
+    categories_data = CategorySerializer(categories, many=True).data
+    authors_data = [{"id": author.id, "author_name": author.author_name} for author in authors]
+    if not (books_data or users_data or categories_data or authors_data):
+        return Response({"message": "No data found"}, status=status.HTTP_404_NOT_FOUND)
+    return Response({"books": books_data,"users": users_data,"categories": categories_data,"authors": authors_data,}, status=status.HTTP_200_OK)
