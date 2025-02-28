@@ -1,64 +1,56 @@
 from django.db import models
-from django.utils.timezone import now
-
 # Create your models here.
 
-class User(models.Model):
-    userid = models.CharField(max_length=50, unique=True)
-    user_password = models.CharField(max_length=255)
-    name = models.CharField(max_length=50)
-    address = models.CharField(max_length=220)
-    phonenumber = models.CharField(max_length=15)
-    def __str__(self):
-        return self.userid
-    
-class Category(models.Model):
+
+class AbstractBaseModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class Category(AbstractBaseModel):
     name = models.CharField(max_length=255, unique=True)
+
     def __str__(self):
         return self.name
 
-class Author(models.Model):
+
+class Author(AbstractBaseModel):
     author_name = models.CharField(max_length=255)
+
     def __str__(self):
         return self.author_name
 
-class Book(models.Model):
-    ISBN = models.CharField(max_length=13, unique=True)
+
+class Book(AbstractBaseModel):
+    ISBN = models.CharField(max_length=13, default="")
     book_title = models.CharField(max_length=255)
-    book_catogory = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="books")
-    borrow_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="books")
-    total_copies = models.IntegerField(null=True, blank=True)
-    avaliable_copies_in_inventory = models.IntegerField(default=1)
-    def copies(self, *args, **kwargs):
-        try:
-            if self.availaavaliable_copies_in_inventoryble_copies > self.total_copies:
-                self.avaliable_copies_in_inventory = self.total_copies
-            super().copies(args,*kwargs)
-        except  Exception  as e:
-            print("Error... You did some mistake")
-    is_borrowed = models.BooleanField(default=False)    
-    
+    book_category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="books")
+    author = models.ForeignKey(Author, on_delete=models.CASCADE, related_name="books")
+    publish_date = models.DateField()
+    book_status = models.CharField(max_length=20, default="Available" , choices=[('Available', 'Available'),('Borrow', 'Borrow'),('Reserve', 'Reserve'),('Return', 'Return')])
+    users = models.ManyToManyField('User', related_name="borrowed_books", blank=True)
+    description = models.TextField()
+
     def __str__(self):
         return self.book_title
 
-class Borrow(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    borrow_date = models.DateTimeField(auto_now_add=True)
-    return_date = models.DateTimeField(null=True, blank=True)
+
+class User(AbstractBaseModel):
+    name = models.CharField(max_length=50, unique=True)
+    address = models.TextField()
+    phone_number = models.CharField(max_length=15)
+    books = models.ManyToManyField(Book, related_name="readers", blank=True)
 
     def __str__(self):
-        return f"{self.user.username} borrowed {self.book.title}"
-class Reservation(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    reservation_date = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(max_length=20,default="Pending")
-    def __str__(self):
-        return f"{self.user.username} Reserved {self.book.book_title}"
+        return self.name
+
 
 class Search(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     query = models.CharField(max_length=255)
+
     def __str__(self):
-        return f"{self.user.userid} searched {self.description}"
+        return f"{self.user.name} searched {self.description}"
