@@ -94,28 +94,42 @@ def book_detail(request, pk):
         book.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-@api_view(['PATCH'])
-def update_book_status(request, pk):
-    book = get_object_or_404(Book, pk=pk)
-    book.book_status = request.data.get('book_status')
+@api_view(['POST'])
+def reserve_book(request):
+    user_id = request.data.get('user_id')
+    book_id = request.data.get('book_id')
+    if not user_id or not book_id:
+        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    user = get_object_or_404(User, pk=user_id)
+    book = get_object_or_404(Book, pk=book_id)
+    book.book_status = "Reserve"
     book.save()
-    return Response({'message': f'Book "{book.book_title}" status updated to {book.book_status}'}, status=status.HTTP_200_OK)
+    return Response({'message': f'Book "{book.book_title}" has been reserved by {user.name}'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
-def add_book_to_user(request):
-    user = get_object_or_404(User, pk=request.data.get('user_id'))
-    book = get_object_or_404(Book, pk=request.data.get('book_id'))
+def borrow_book(request):
+    user_id = request.data.get('user_id')
+    book_id = request.data.get('book_id')
+    if not user_id or not book_id:
+        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    user = get_object_or_404(User, pk=user_id)
+    book = get_object_or_404(Book, pk=book_id)
     user.books.add(book)
-    return Response({'message': f'Book "{book.book_title}" added to {user.name}'}, status=status.HTTP_200_OK)
+    return Response({'message': f'Book "{book.book_title}" has been borrowed by {user.name}'}, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
-def remove_book_from_user(request):
-    user = get_object_or_404(User, pk=request.data.get('user_id'))
-    book = get_object_or_404(Book, pk=request.data.get('book_id'))
-    user.books.remove(book)
-    return Response({'message': f'Book "{book.book_title}" removed from {user.name}'}, status=status.HTTP_200_OK)
+def return_book(request):
+    user_id = request.data.get('user_id')
+    book_id = request.data.get('book_id')
+    
+    if not user_id or not book_id:
+        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    user = get_object_or_404(User, pk=user_id)
+    book = get_object_or_404(Book, pk=book_id)
+    book.book_status = "Available"
+    book.save()
+    return Response({'message': f'Book "{book.book_title}" return by {user.name}'}, status=status.HTTP_200_OK)
 
 @api_view(['GET', 'POST'])
 def category_list(request):
