@@ -4,7 +4,6 @@ from rest_framework.decorators import api_view
 from rest_framework import status
 from .models import User, Book, Category, Author
 from .serializers import BookSerializer, UserSerializer, CategorySerializer, AuthorSerializer
-from django.utils import timezone
 from django.db.models import Q
 
 
