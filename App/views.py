@@ -2,9 +2,10 @@ from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework import status
-from .models import User, Book, Category, Author
+from .models import User, Book, Category, Author, Billing
 from .serializers import BookSerializer, UserSerializer, CategorySerializer, AuthorSerializer
 from django.db.models import Q
+from datetime import datetime,date
 
 
 @api_view(['GET', 'POST'])
@@ -99,6 +100,9 @@ def reserve_book(request):
     book_id = request.data.get('book_id')
     if not user_id or not book_id:
         return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    book = get_object_or_404(Book, pk=book_id)
+    if book.book_status in ['Borrow', 'Reserve']:
+        return Response({'error': 'Book is already reserved or borrowed'}, status=status.HTTP_400_BAD_REQUEST)
     user = get_object_or_404(User, pk=user_id)
     book = get_object_or_404(Book, pk=book_id)
     book.book_status = "Reserve"
@@ -109,13 +113,20 @@ def reserve_book(request):
 def borrow_book(request):
     user_id = request.data.get('user_id')
     book_id = request.data.get('book_id')
-    if not user_id or not book_id:
-        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    return_date = request.data.get('return_date')
     user = get_object_or_404(User, pk=user_id)
     book = get_object_or_404(Book, pk=book_id)
-    user.books.add(book)
-    return Response({'message': f'Book "{book.book_title}" has been borrowed by {user.name}'}, status=status.HTTP_200_OK)
-
+    if not user_id or not book_id:
+        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if book.book_status in ['Borrow', 'Reserve']:
+        return Response({'error': 'Book is already reserved or borrowed'}, status=status.HTTP_400_BAD)
+    borrow_date = datetime.now().date()
+    return_date = date.fromisoformat(return_date)
+    total_cost = (return_date - borrow_date).days * book.price_perDay
+    Billing.objects.create(borrowed_by=user, book=book, borrow_date=borrow_date, return_date=return_date, total_cost=total_cost)
+    book.book_status = "Borrow"
+    book.save()
+    return Response({'message': f'Book "{book.book_title}" has been borrowed by {user.name} and price will be ${total_cost}'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def return_book(request):
@@ -126,9 +137,23 @@ def return_book(request):
         return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
     user = get_object_or_404(User, pk=user_id)
     book = get_object_or_404(Book, pk=book_id)
+    
+    billing = Billing.objects.filter(book=book, borrowed_by=user).first()
+    if not billing:
+        return Response({'error': 'Billing record not found'}, status=status.HTTP_404_NOT_FOUND)
+    current_date = datetime.now().date()
+    fine = 0 
+    if billing.return_date < current_date:
+        overdue_days = (current_date - billing.return_date).days
+        fine = overdue_days * 0.5 
+    billing.delete()
     book.book_status = "Available"
     book.save()
-    return Response({'message': f'Book "{book.book_title}" return by {user.name}'}, status=status.HTTP_200_OK)
+    if fine > 0:
+        return Response({'message': f'Book "{book.book_title}" returned by {user.name}. You have to pay a fine of ${fine}.'}, status=status.HTTP_200_OK)
+    else:
+        return Response({'message': f'Book "{book.book_title}" returned by {user.name}.'}, status=status.HTTP_200_OK)    
+    
 
 @api_view(['GET', 'POST'])
 def category_list(request):

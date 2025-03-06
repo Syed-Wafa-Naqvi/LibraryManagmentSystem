@@ -11,7 +11,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
-        fields = '__all__'
+        fields = ['id', 'isbn', 'book_title', 'book_category', 'author', 'publish_date', 'book_status', 'price_perDay', 'description', 'borrow_by']
 
 
 class UserSerializer(serializers.ModelSerializer):
