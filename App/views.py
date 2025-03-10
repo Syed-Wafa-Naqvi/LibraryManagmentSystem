@@ -6,9 +6,12 @@ from .models import User, Book, Category, Author, Billing
 from .serializers import BookSerializer, UserSerializer, CategorySerializer, AuthorSerializer
 from django.db.models import Q
 from datetime import datetime,date
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def users(request):
     if request.method == 'GET':
         serializer = UserSerializer(User.objects.all(), many=True)
@@ -22,6 +25,7 @@ def users(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def user_detail(request, pk):
     user = get_object_or_404(User, pk=pk)
     if request.method == 'GET':
@@ -38,6 +42,7 @@ def user_detail(request, pk):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def authors(request):
     if request.method == 'GET':
         serializer = AuthorSerializer(Author.objects.all(), many=True)
@@ -51,6 +56,7 @@ def authors(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def author_detail(request, pk):
     author = get_object_or_404(Author, pk=pk)
     if request.method == 'GET':
@@ -67,6 +73,7 @@ def author_detail(request, pk):
 
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def book_list(request):
     if request.method == 'GET':
         serializer = BookSerializer(Book.objects.all(), many=True)
@@ -80,6 +87,7 @@ def book_list(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def book_detail(request, pk):
     book = get_object_or_404(Book, pk=pk)
     if request.method == 'GET':
@@ -95,6 +103,7 @@ def book_detail(request, pk):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def reserve_book(request):
     user_id = request.data.get('user_id')
     book_id = request.data.get('book_id')
@@ -110,6 +119,7 @@ def reserve_book(request):
     return Response({'message': f'Book "{book.book_title}" has been reserved by {user.name}'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def borrow_book(request):
     user_id = request.data.get('user_id')
     book_id = request.data.get('book_id')
@@ -129,14 +139,14 @@ def borrow_book(request):
     return Response({'message': f'Book "{book.book_title}" has been borrowed by {user.name} and price will be ${total_cost}'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def return_book(request):
     user_id = request.data.get('user_id')
     book_id = request.data.get('book_id')
-    
-    if not user_id or not book_id:
-        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
     user = get_object_or_404(User, pk=user_id)
     book = get_object_or_404(Book, pk=book_id)
+    if not user_id or not book_id:
+        return Response({'error': 'user_id and book_id are required'}, status=status.HTTP_400_BAD_REQUEST)
     
     billing = Billing.objects.filter(book=book, borrowed_by=user).first()
     if not billing:
@@ -156,6 +166,7 @@ def return_book(request):
     
 
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def category_list(request):
     if request.method == 'GET':
         serializer = CategorySerializer(Category.objects.all(), many=True)
@@ -169,6 +180,7 @@ def category_list(request):
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
 def category_detail(request, pk):
     category = get_object_or_404(Category, pk=pk)
     if request.method == 'GET':
